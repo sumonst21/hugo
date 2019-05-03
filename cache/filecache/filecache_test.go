@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/config"
 	"github.com/gohugoio/hugo/helpers"
 
 	"github.com/gohugoio/hugo/hugofs"
@@ -83,8 +82,7 @@ dir = ":cacheDir/c"
 		configStr = replacer.Replace(configStr)
 		configStr = strings.Replace(configStr, "\\", winPathSep, -1)
 
-		cfg, err := config.FromConfigString(configStr, "toml")
-		assert.NoError(err)
+		cfg, err := configFromString(configStr)
 
 		fs := hugofs.NewFrom(osfs, cfg)
 		p, err := helpers.NewPathSpec(fs, cfg)
@@ -207,8 +205,7 @@ dir = "/cache/c"
 
 `
 
-	cfg, err := config.FromConfigString(configStr, "toml")
-	assert.NoError(err)
+	cfg, err := configFromString(configStr)
 	fs := hugofs.NewMem(cfg)
 	p, err := helpers.NewPathSpec(fs, cfg)
 	assert.NoError(err)

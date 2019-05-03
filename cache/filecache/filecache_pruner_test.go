@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/config"
 	"github.com/gohugoio/hugo/helpers"
 	"github.com/gohugoio/hugo/hugofs"
 
@@ -54,7 +53,7 @@ maxAge = "200ms"
 dir = ":resourceDir/_gen"
 `
 
-	cfg, err := config.FromConfigString(configStr, "toml")
+	cfg, err := configFromString(configStr)
 	assert.NoError(err)
 
 	for _, name := range []string{cacheKeyGetCSV, cacheKeyGetJSON, cacheKeyAssets, cacheKeyImages} {
