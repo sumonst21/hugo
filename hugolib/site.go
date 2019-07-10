@@ -1059,7 +1059,7 @@ func (s *Site) processPartial(events []fsnotify.Event) (whatChanged, error) {
 			filenamesChanged = append(filenamesChanged, contentFilesChanged...)
 		}
 
-		filenamesChanged = helpers.UniqueStrings(filenamesChanged)
+		filenamesChanged = helpers.UniqueStringsReuse(filenamesChanged)
 
 		if err := s.readAndProcessContent(filenamesChanged...); err != nil {
 			return whatChanged{}, err

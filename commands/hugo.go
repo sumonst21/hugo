@@ -21,7 +21,6 @@ import (
 	"os/signal"
 	"runtime/pprof"
 	"runtime/trace"
-	"sort"
 	"sync/atomic"
 
 	"github.com/gohugoio/hugo/hugofs"
@@ -683,8 +682,7 @@ func (c *commandeer) getDirList() ([]string, error) {
 		}
 	}
 
-	dirnames = helpers.UniqueStrings(dirnames)
-	sort.Strings(dirnames)
+	dirnames = helpers.UniqueStringsSorted(dirnames)
 
 	return dirnames, nil
 }

@@ -723,7 +723,7 @@ func (r *Spec) newGenericResourceWithBase(
 	}
 
 	pathDescriptor := resourcePathDescriptor{
-		baseTargetPathDirs: helpers.UniqueStrings(targetPathBaseDirs),
+		baseTargetPathDirs: helpers.UniqueStringsReuse(targetPathBaseDirs),
 		targetPathBuilder:  targetPathBuilder,
 		relTargetDirFile:   dirFile{dir: fpath, file: fname},
 	}
