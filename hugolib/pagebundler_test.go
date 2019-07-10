@@ -72,7 +72,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 							"a": ":sections/:filename",
 							"b": ":year/:slug/",
 							"c": ":sections/:slug",
-							" ": ":filename/",
+							"/": ":filename/",
 						})
 
 						cfg.Set("outputFormats", map[string]interface{}{
@@ -969,7 +969,7 @@ slug: %s
 
 }
 
-func TestBundleLanguageOrder(t *testing.T) {
+func TestBundleMisc(t *testing.T) {
 	config := `
 baseURL = "https://example.com"
 defaultContentLanguage = "en"
@@ -1000,16 +1000,23 @@ title: %q
 	}
 
 	b := newTestSitesBuilder(t).WithConfigFile("toml", config)
+	b.WithLogger(loggers.NewWarningLogger())
 
-	b.WithTemplates("index.html", `{{ range .Site.Pages }}
+	b.WithTemplates("_default/list.html", `{{ range .Site.Pages }}
 {{ .Kind }}|{{ .Path }}|{{ with .CurrentSection }}CurrentSection: {{ .Path }}{{ end }}{{ end }}
 `)
+
+	b.WithTemplates("_default/single.html", `Single: {{ .Title }}`)
 
 	b.WithContent("en/sect1/sect2/_index.md", createPage("en: Sect 2"))
 	b.WithContent("en/sect1/sect2/page.md", createPage("en: Page"))
 	b.WithContent("en/sect1/sect2/data-branch.json", "mydata")
 	b.WithContent("nn/sect1/sect2/page.md", createPage("nn: Page"))
 	b.WithContent("nn/sect1/sect2/data-branch.json", "my nn data")
+
+	// En only
+	b.WithContent("en/enonly/myen.md", createPage("en: Page"))
+	b.WithContent("en/enonly/myendata.json", "mydata")
 
 	// Leaf
 
@@ -1018,6 +1025,10 @@ title: %q
 	b.WithContent("sv/b1/index.md", createPage("sv: leaf"))
 	b.WithContent("nb/b1/index.md", createPage("nb: leaf"))
 
+	// Both leaf and branch bundle in same dir
+	b.WithContent("en/b2/index.md", createPage("en: leaf"))
+	b.WithContent("en/b2/_index.md", createPage("en: branch"))
+
 	b.WithContent("en/b1/data1.json", "en: data")
 	b.WithContent("sv/b1/data1.json", "sv: data")
 	b.WithContent("sv/b1/data2.json", "sv: data2")
@@ -1025,11 +1036,28 @@ title: %q
 
 	b.Build(BuildCfg{})
 
-	b.AssertFileContent("public/en/index.html", filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"))
+	b.AssertFileContent("public/en/index.html",
+		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"),
+		"myen.md|CurrentSection: enonly")
 	b.AssertFileContent("public/nn/index.html", filepath.FromSlash("page|sect1/sect2/page.md|CurrentSection: sect1"))
+	b.AssertFileContentFn("public/nn/index.html", func(s string) bool {
+		return !strings.Contains(s, "enonly")
+	})
 
 	// Check order of inherited data file
 	b.AssertFileContent("public/nb/b1/data1.json", "en: data") // Default content
 	b.AssertFileContent("public/nn/b1/data2.json", "sv: data") // First match
+
+	b.AssertFileContent("public/en/enonly/myen/index.html", "Single: en: Page")
+	b.AssertFileContent("public/en/enonly/myendata.json", "mydata")
+
+	assert := require.New(t)
+	assert.False(b.CheckExists("public/sv/enonly/myen/index.html"))
+
+	// Both leaf and branch bundle in same dir
+	// We log a warning about it, but we keep both.
+	b.AssertFileContent("public/en/b2/index.html",
+		filepath.FromSlash("page|b2/index.md|CurrentSection: b2/_index.md"),
+		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"))
 
 }

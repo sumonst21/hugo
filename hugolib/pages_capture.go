@@ -241,11 +241,26 @@ func (c *pagesCollector) collectDir(dirname string, partial bool, inFilter func(
 			}
 			seen[key] = true
 
+			var thisBtype bundleDirType
+
 			switch class {
 			case files.ContentClassLeaf:
-				btype = bundleLeaf
+				thisBtype = bundleLeaf
 			case files.ContentClassBranch:
-				btype = bundleBranch
+				thisBtype = bundleBranch
+			}
+
+			// Folders with both index.md and _index.md type of files have
+			// undefined behaviour and can never work.
+			// The branch variant will win because of sort order, but log
+			// a warning about it.
+			if thisBtype > bundleNot && btype > bundleNot && thisBtype != btype {
+				c.logger.WARN.Printf("Content directory %q have both index.* and _index.* files, pick one.", dir.Meta().Filename())
+				// Reclassify it so it will be handled as a content file inside the
+				// section, which is in line with the <= 0.55 behaviour.
+				meta["classifier"] = files.ContentClassContent
+			} else if thisBtype > bundleNot {
+				btype = thisBtype
 			}
 
 		}
