@@ -43,6 +43,7 @@ func (fs *noSymlinkFs) Stat(name string) (os.FileInfo, error) {
 }
 
 func (fs *noSymlinkFs) stat(name string) (os.FileInfo, bool, error) {
+
 	var (
 		fi       os.FileInfo
 		wasLstat bool
@@ -52,10 +53,17 @@ func (fs *noSymlinkFs) stat(name string) (os.FileInfo, bool, error) {
 	if lstater, ok := fs.Fs.(afero.Lstater); ok {
 		fi, wasLstat, err = lstater.LstatIfPossible(name)
 	} else {
+
 		fi, err = fs.Fs.Stat(name)
 	}
 
-	if isSymlink(fi) {
+	var metaIsSymlink bool
+
+	if fim, ok := fi.(FileMetaInfo); ok {
+		metaIsSymlink = fim.Meta().IsSymlink()
+	}
+
+	if metaIsSymlink || isSymlink(fi) {
 		return nil, wasLstat, ErrPermissionSymlink
 	}
 

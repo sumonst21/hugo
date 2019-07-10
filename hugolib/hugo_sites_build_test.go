@@ -2,7 +2,6 @@ package hugolib
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -1243,6 +1242,7 @@ func writeToFs(t testing.TB, fs afero.Fs, filename, content string) {
 }
 
 func readDestination(t testing.TB, fs *hugofs.Fs, filename string) string {
+	t.Helper()
 	return readFileFromFs(t, fs.Destination, filename)
 }
 
@@ -1281,7 +1281,7 @@ func readFileFromFs(t testing.TB, fs afero.Fs, filename string) string {
 			root = helpers.FilePathSeparator + root
 		}
 
-		helpers.PrintFs(fs, root, os.Stdout)
+		//helpers.PrintFs(fs, root, os.Stdout)
 		t.Fatalf("Failed to read file: %s", err)
 	}
 	return string(b)

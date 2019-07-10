@@ -676,7 +676,7 @@ func (c *commandeer) getDirList() ([]string, error) {
 	watchDirs := c.hugo.PathSpec.BaseFs.WatchDirs()
 	for _, watchDir := range watchDirs {
 
-		w := hugofs.NewWalkway(hugofs.WalkwayConfig{Info: watchDir, WalkFn: walkFn})
+		w := hugofs.NewWalkway(hugofs.WalkwayConfig{Logger: c.logger, Info: watchDir, WalkFn: walkFn})
 		if err := w.Walk(); err != nil {
 			c.logger.ERROR.Println("walker: ", err)
 		}

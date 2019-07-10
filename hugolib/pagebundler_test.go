@@ -17,7 +17,6 @@ import (
 	"os"
 	"path"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -385,9 +384,7 @@ func TestMultilingualDisableLanguage(t *testing.T) {
 }
 
 func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
-	if runtime.GOOS == "windows" && os.Getenv("CI") == "" {
-		t.Skip("Skip TestPageBundlerSiteWitSymbolicLinksInContent as os.Symlink needs administrator rights on Windows")
-	}
+	skipSymlink(t)
 
 	wd, _ := os.Getwd()
 	defer func() {

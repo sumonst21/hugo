@@ -20,6 +20,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gohugoio/hugo/common/loggers"
+
 	"github.com/pkg/errors"
 
 	"github.com/spf13/afero"
@@ -34,6 +36,8 @@ type Walkway struct {
 	fs       afero.Fs
 	root     string
 	basePath string
+
+	logger *loggers.Logger
 
 	// May be pre-set
 	fi         FileMetaInfo
@@ -54,6 +58,8 @@ type WalkwayConfig struct {
 	Fs       afero.Fs
 	Root     string
 	BasePath string
+
+	Logger *loggers.Logger
 
 	// One or both of these may be pre-set.
 	Info       FileMetaInfo
@@ -77,6 +83,11 @@ func NewWalkway(cfg WalkwayConfig) *Walkway {
 		basePath += filepathSeparator
 	}
 
+	logger := cfg.Logger
+	if logger == nil {
+		logger = loggers.NewWarningLogger()
+	}
+
 	return &Walkway{
 		fs:         fs,
 		root:       cfg.Root,
@@ -86,6 +97,7 @@ func NewWalkway(cfg WalkwayConfig) *Walkway {
 		walkFn:     cfg.WalkFn,
 		hookPre:    cfg.HookPre,
 		hookPost:   cfg.HookPost,
+		logger:     logger,
 		seen:       make(map[string]bool)}
 }
 
@@ -109,6 +121,12 @@ func (w *Walkway) Walk() error {
 			if os.IsNotExist(err) {
 				return nil
 			}
+
+			if err == ErrPermissionSymlink {
+				w.logger.WARN.Printf("Unsupported symlink found in %q, skipping.", w.root)
+				return nil
+			}
+
 			return w.walkFn(w.root, nil, errors.Wrapf(err, "walk: %q", w.root))
 		}
 		fi = info.(FileMetaInfo)
@@ -165,6 +183,10 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 		fis, err := f.Readdir(-1)
 		f.Close()
 		if err != nil {
+			if err == ErrPermissionSymlink {
+				w.logger.WARN.Printf("Unsupported symlink found in %q, skipping.", filename)
+				return nil
+			}
 			return walkFn(path, info, errors.Wrap(err, "walk: Readdir"))
 		}
 

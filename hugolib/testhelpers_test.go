@@ -449,14 +449,16 @@ func (s *sitesBuilder) CreateSitesE() error {
 		}
 
 		s.addDefaults()
-		s.writeFilePairs("content", s.contentFilePairs)
 		s.writeFilePairs("content", s.contentFilePairsAdded)
-		s.writeFilePairs("layouts", s.templateFilePairs)
 		s.writeFilePairs("layouts", s.templateFilePairsAdded)
-		s.writeFilePairs("data", s.dataFilePairs)
 		s.writeFilePairs("data", s.dataFilePairsAdded)
-		s.writeFilePairs("i18n", s.i18nFilePairs)
 		s.writeFilePairs("i18n", s.i18nFilePairsAdded)
+
+		s.writeFilePairs("i18n", s.i18nFilePairs)
+		s.writeFilePairs("data", s.dataFilePairs)
+		s.writeFilePairs("content", s.contentFilePairs)
+		s.writeFilePairs("layouts", s.templateFilePairs)
+
 	}
 
 	if err := s.LoadConfig(); err != nil {
@@ -648,6 +650,7 @@ func (s *sitesBuilder) AssertFileContent(filename string, matches ...string) {
 }
 
 func (s *sitesBuilder) FileContent(filename string) string {
+	s.T.Helper()
 	return readDestination(s.T, s.Fs, filename)
 }
 
@@ -914,4 +917,11 @@ func parallel(t *testing.T) {
 	if parallelEnabled {
 		t.Parallel()
 	}
+}
+
+func skipSymlink(t *testing.T) {
+	if runtime.GOOS == "windows" && os.Getenv("CI") == "" {
+		t.Skip("skip symlink test on local Windows (needs admin)")
+	}
+
 }

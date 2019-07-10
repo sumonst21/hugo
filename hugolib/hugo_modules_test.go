@@ -16,8 +16,15 @@ package hugolib
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/afero"
+
+	"github.com/gohugoio/hugo/hugofs/files"
 
 	"github.com/gohugoio/hugo/common/hugo"
 
@@ -257,4 +264,119 @@ other = %q
 		"i18n theme2: Theme2 D",
 	)
 
+}
+
+func TestHugoModulesSymlinks(t *testing.T) {
+	skipSymlink(t)
+
+	wd, _ := os.Getwd()
+	defer func() {
+		os.Chdir(wd)
+	}()
+
+	assert := require.New(t)
+	// We need to use the OS fs for this.
+	cfg := viper.New()
+	fs := hugofs.NewFrom(hugofs.Os, cfg)
+
+	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mod-sym")
+	assert.NoError(err)
+
+	defer clean()
+
+	const homeTemplate = `
+Data: {{ .Site.Data }}
+`
+
+	createDirsAndFiles := func(baseDir string) {
+		for _, dir := range files.ComponentFolders {
+			realDir := filepath.Join(baseDir, dir, "real")
+			assert.NoError(os.MkdirAll(realDir, 0777))
+			assert.NoError(afero.WriteFile(fs.Source, filepath.Join(realDir, "data.toml"), []byte("[hello]\nother = \"hello\""), 0777))
+		}
+
+		assert.NoError(afero.WriteFile(fs.Source, filepath.Join(baseDir, "layouts", "index.html"), []byte(homeTemplate), 0777))
+	}
+
+	// Create project dirs and files.
+	createDirsAndFiles(workDir)
+	// Create one module inside the default themes folder.
+	themeDir := filepath.Join(workDir, "themes", "mymod")
+	createDirsAndFiles(themeDir)
+
+	createSymlinks := func(baseDir, id string) {
+		for _, dir := range files.ComponentFolders {
+			assert.NoError(os.Chdir(filepath.Join(baseDir, dir)))
+			assert.NoError(os.Symlink("real", fmt.Sprintf("realsym%s", id)))
+			assert.NoError(os.Chdir(filepath.Join(baseDir, dir, "real")))
+			assert.NoError(os.Symlink("data.toml", fmt.Sprintf(filepath.FromSlash("datasym%s.toml"), id)))
+		}
+	}
+
+	createSymlinks(workDir, "project")
+	createSymlinks(themeDir, "mod")
+
+	config := `
+baseURL = "https://example.com"
+theme="mymod"
+defaultContentLanguage="nn"
+defaultContentLanguageInSubDir=true
+
+[languages]
+[languages.nn]
+weight = 1
+[languages.en]
+weight = 2
+
+
+`
+
+	b := newTestSitesBuilder(t).WithNothingAdded().WithWorkingDir(workDir)
+	b.Fs = fs
+
+	b.WithConfigFile("toml", config)
+	assert.NoError(os.Chdir(workDir))
+
+	b.Build(BuildCfg{})
+
+	b.AssertFileContentFn(filepath.Join("public", "en", "index.html"), func(s string) bool {
+		// Symbolic links only followed in project. There should be WARNING logs.
+		return !strings.Contains(s, "symmod") && strings.Contains(s, "symproject")
+	})
+
+	bfs := b.H.BaseFs
+
+	for _, componentFs := range []afero.Fs{
+		bfs.Archetypes.Fs,
+		bfs.Content.Fs,
+		bfs.Data.Fs,
+		bfs.Assets.Fs,
+		bfs.Static[""].Fs,
+		bfs.I18n.Fs,
+		bfs.Resources.Fs} {
+
+		for i, id := range []string{"mod", "project"} {
+
+			statCheck := func(fs afero.Fs, filename string) {
+				shouldFail := i == 0
+				_, err := fs.Stat(filepath.FromSlash(filename))
+				if err != nil {
+					if strings.HasSuffix(filename, "toml") && strings.Contains(err.Error(), "files not supported") {
+						// OK
+						return
+					}
+				}
+				if shouldFail {
+					assert.Error(err)
+					assert.Equal(hugofs.ErrPermissionSymlink, err)
+				} else {
+					assert.NoError(err)
+				}
+			}
+
+			statCheck(componentFs, fmt.Sprintf("realsym%s", id))
+			statCheck(componentFs, fmt.Sprintf("real/datasym%s.toml", id))
+
+		}
+	}
 }

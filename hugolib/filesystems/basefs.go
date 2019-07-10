@@ -441,7 +441,7 @@ func (b *sourceFilesystemsBuilder) createMainOverlayFs(p *paths.Paths) (*filesys
 
 	collector := &filesystemsCollector{
 		sourceProject:     b.sourceFs,
-		sourceModules:     b.sourceFs, // TODO(bep) mod: add a no symlinc fs
+		sourceModules:     hugofs.NewNoSymlinkFs(b.sourceFs),
 		overlayDirs:       make(map[string][]hugofs.FileMetaInfo),
 		staticPerLanguage: staticFsMap,
 	}

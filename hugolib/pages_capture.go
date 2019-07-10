@@ -313,6 +313,7 @@ func (c *pagesCollector) collectDir(dirname string, partial bool, inFilter func(
 
 	w := hugofs.NewWalkway(hugofs.WalkwayConfig{
 		Fs:       c.fs,
+		Logger:   c.logger,
 		Root:     dirname,
 		Info:     fi.(hugofs.FileMetaInfo),
 		HookPre:  preHook,
@@ -477,6 +478,7 @@ func (c *pagesCollector) handleBundleLeaf(dir hugofs.FileMetaInfo, path string, 
 	w := hugofs.NewWalkway(hugofs.WalkwayConfig{
 		Root:       path,
 		Fs:         c.fs,
+		Logger:     c.logger,
 		Info:       dir,
 		DirEntries: readdir,
 		WalkFn:     walk})
