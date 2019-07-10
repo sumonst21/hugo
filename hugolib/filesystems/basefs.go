@@ -73,6 +73,7 @@ func (fs *BaseFs) AllDirs() []hugofs.FileMetaInfo {
 		fs.Data.Dirs,
 		fs.Content.Dirs,
 		fs.Assets.Dirs,
+		fs.Layouts.Dirs,
 		fs.Resources.Dirs,
 		fs.StaticDirs,
 	} {
