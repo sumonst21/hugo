@@ -622,9 +622,10 @@ func stackTrace() string {
 }
 
 func (s *sitesBuilder) AssertFileContentFn(filename string, f func(s string) bool) {
+	s.T.Helper()
 	content := s.FileContent(filename)
 	if !f(content) {
-		s.Fatalf("Assert failed for %q", filename)
+		s.Fatalf("Assert failed for %q in content\n%s", filename, content)
 	}
 }
 

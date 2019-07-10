@@ -198,6 +198,11 @@ func (c *pagesCollector) collectDir(dirname string, partial bool, inFilter func(
 		if fim.Meta().SkipDir() {
 			return false
 		}
+
+		if c.sp.IgnoreFile(fim.Meta().Filename()) {
+			return false
+		}
+
 		if inFilter != nil {
 			return inFilter(fim)
 		}

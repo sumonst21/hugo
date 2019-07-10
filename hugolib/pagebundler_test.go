@@ -16,6 +16,7 @@ package hugolib
 import (
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -974,6 +975,7 @@ func TestBundleMisc(t *testing.T) {
 baseURL = "https://example.com"
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
+ignoreFiles = ["README\\.md", "content/en/ignore"]
 
 [Languages]
 [Languages.en]
@@ -1003,7 +1005,7 @@ title: %q
 	b.WithLogger(loggers.NewWarningLogger())
 
 	b.WithTemplates("_default/list.html", `{{ range .Site.Pages }}
-{{ .Kind }}|{{ .Path }}|{{ with .CurrentSection }}CurrentSection: {{ .Path }}{{ end }}{{ end }}
+{{ .Kind }}|{{ .Path }}|{{ with .CurrentSection }}CurrentSection: {{ .Path }}{{ end }}|{{ .RelPermalink }}{{ end }}
 `)
 
 	b.WithTemplates("_default/single.html", `Single: {{ .Title }}`)
@@ -1025,8 +1027,15 @@ title: %q
 	b.WithContent("sv/b1/index.md", createPage("sv: leaf"))
 	b.WithContent("nb/b1/index.md", createPage("nb: leaf"))
 
+	// Should be ignored
+	b.WithContent("en/ignore/page.md", createPage("en: ignore"))
+	b.WithContent("en/README.md", createPage("en: ignore"))
+
 	// Both leaf and branch bundle in same dir
-	b.WithContent("en/b2/index.md", createPage("en: leaf"))
+	b.WithContent("en/b2/index.md", `---
+slug: leaf
+---
+`)
 	b.WithContent("en/b2/_index.md", createPage("en: branch"))
 
 	b.WithContent("en/b1/data1.json", "en: data")
@@ -1039,9 +1048,17 @@ title: %q
 	b.AssertFileContent("public/en/index.html",
 		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"),
 		"myen.md|CurrentSection: enonly")
+
+	b.AssertFileContentFn("public/en/index.html", func(s string) bool {
+		// Check ignored files
+		return !regexp.MustCompile("README|ignore").MatchString(s)
+
+	})
+
 	b.AssertFileContent("public/nn/index.html", filepath.FromSlash("page|sect1/sect2/page.md|CurrentSection: sect1"))
 	b.AssertFileContentFn("public/nn/index.html", func(s string) bool {
 		return !strings.Contains(s, "enonly")
+
 	})
 
 	// Check order of inherited data file
@@ -1057,7 +1074,7 @@ title: %q
 	// Both leaf and branch bundle in same dir
 	// We log a warning about it, but we keep both.
 	b.AssertFileContent("public/en/b2/index.html",
-		filepath.FromSlash("page|b2/index.md|CurrentSection: b2/_index.md"),
+		filepath.FromSlash("/en/b2/leaf/"),
 		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"))
 
 }
