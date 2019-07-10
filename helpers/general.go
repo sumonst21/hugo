@@ -22,6 +22,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"unicode"
@@ -106,7 +107,7 @@ func FirstUpper(s string) string {
 
 // UniqueStrings returns a new slice with any duplicates removed.
 func UniqueStrings(s []string) []string {
-	var unique []string
+	unique := make([]string, 0, len(s))
 	set := map[string]interface{}{}
 	for _, val := range s {
 		if _, ok := set[val]; !ok {
@@ -115,6 +116,37 @@ func UniqueStrings(s []string) []string {
 		}
 	}
 	return unique
+}
+
+// UniqueStringsReuse returns a slice with any duplicates removed.
+// It will modify the input slice.
+func UniqueStringsReuse(s []string) []string {
+	set := map[string]interface{}{}
+	result := s[:0]
+	for _, val := range s {
+		if _, ok := set[val]; !ok {
+			result = append(result, val)
+			set[val] = val
+		}
+	}
+	return result
+}
+
+// UniqueStringsReuse returns a sorted slice with any duplicates removed.
+// It will modify the input slice.
+func UniqueStringsSorted(s []string) []string {
+	ss := sort.StringSlice(s)
+	ss.Sort()
+	i := 0
+	for j := 1; j < len(s); j++ {
+		if !ss.Less(i, j) {
+			continue
+		}
+		i++
+		s[i] = s[j]
+	}
+
+	return s[:i+1]
 }
 
 // ReaderToBytes takes an io.Reader argument, reads from it
