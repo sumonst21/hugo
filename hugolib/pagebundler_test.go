@@ -1074,7 +1074,7 @@ slug: leaf
 	// Both leaf and branch bundle in same dir
 	// We log a warning about it, but we keep both.
 	b.AssertFileContent("public/en/b2/index.html",
-		filepath.FromSlash("/en/b2/leaf/"),
+		"/en/b2/leaf/",
 		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"))
 
 }

@@ -535,8 +535,6 @@ func (proc *pagesProcessor) Start(ctx context.Context) context.Context {
 	proc.itemChan = make(chan interface{}, proc.numWorkers)
 	proc.itemGroup, ctx = errgroup.WithContext(ctx)
 
-	// We could possibly make this parallel per site,
-	// but let us keep this as one Go routine for now.
 	proc.pagesGroup.Go(func() error {
 		for p := range proc.pagesChan {
 			s := p.s
