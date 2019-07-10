@@ -244,12 +244,12 @@ func TestUniqueStringsReuse(t *testing.T) {
 }
 
 func TestUniqueStringsSorted(t *testing.T) {
+	assert := require.New(t)
 	in := []string{"a", "a", "b", "c", "b", "", "a", "", "d"}
 	output := UniqueStringsSorted(in)
 	expected := []string{"", "a", "b", "c", "d"}
-	if !reflect.DeepEqual(output, expected) {
-		t.Errorf("Expected %#v, got %#v\n", expected, output)
-	}
+	assert.Equal(expected, output)
+	assert.Nil(UniqueStringsSorted(nil))
 }
 
 func TestFindAvailablePort(t *testing.T) {
