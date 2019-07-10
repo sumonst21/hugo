@@ -446,10 +446,6 @@ func (b *sourceFilesystemsBuilder) createMainOverlayFs(p *paths.Paths) (*filesys
 		staticPerLanguage: staticFsMap,
 	}
 
-	if len(mods) == 0 {
-		return collector, nil
-	}
-
 	modsReversed := make([]mountsDescriptor, len(mods))
 
 	// The theme components are ordered from left to right.
@@ -463,11 +459,12 @@ func (b *sourceFilesystemsBuilder) createMainOverlayFs(p *paths.Paths) (*filesys
 			i = len(mods) - 2 - i
 		}
 
+		isMainProject := mod.Owner() == nil
 		modsReversed[i] = mountsDescriptor{
 			mounts:        mod.Mounts(),
 			dir:           dir,
-			watch:         !mod.IsGoMod(), // TODO(bep) mod consider Replace
-			isMainProject: mod.Owner() == nil,
+			watch:         isMainProject || !mod.IsGoMod(), // TODO(bep) mod consider Replace
+			isMainProject: isMainProject,
 		}
 	}
 
@@ -650,6 +647,7 @@ type filesystemsCollector struct {
 func (c *filesystemsCollector) addDirs(rfs *hugofs.RootMappingFs) {
 	for _, componentFolder := range files.ComponentFolders {
 		dirs, err := rfs.Dirs(componentFolder)
+
 		if err == nil {
 			c.overlayDirs[componentFolder] = append(c.overlayDirs[componentFolder], dirs...)
 		}
@@ -657,7 +655,6 @@ func (c *filesystemsCollector) addDirs(rfs *hugofs.RootMappingFs) {
 }
 
 func (c *filesystemsCollector) finalizeDirs() {
-	// TODO(bep) mod really need to understand why this is called > 1 time.
 	c.finalizerInit.Do(func() {
 		// Order the directories from top to bottom (project, theme a, theme ...).
 		for _, dirs := range c.overlayDirs {
